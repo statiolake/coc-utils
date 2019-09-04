@@ -1,0 +1,4 @@
+node_modules
+out
+publish
+coc-utils-*.tgz
