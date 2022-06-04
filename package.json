@@ -5,7 +5,8 @@
     "main": "out/index.js",
     "scripts": {
         "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./"
+        "watch": "tsc -watch -p ./",
+        "prepare": "npm run compile"
     },
     "dependencies": {
         "extract-zip": "^1.6.7",
