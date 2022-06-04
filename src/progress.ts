@@ -1,4 +1,4 @@
-import { LanguageClient, StatusBarItem, workspace } from 'coc.nvim';
+import { LanguageClient, StatusBarItem, window } from 'coc.nvim';
 
 export interface StartProgress {
     title: string 
@@ -17,7 +17,7 @@ export function createProgressListeners(client: LanguageClient) {
             // TODO implement user cancellation (???)
             this.title =  start.title
             this.nFiles = start.nFiles
-            this.statusBarItem = workspace.createStatusBarItem(0, { progress : true });
+            this.statusBarItem = window.createStatusBarItem(0, { progress : true });
             this.statusBarItem.text = this.title;
         }
 

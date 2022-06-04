@@ -1,5 +1,5 @@
 import coc = require("coc.nvim");
-import {workspace} from 'coc.nvim'
+import {workspace, window} from 'coc.nvim'
 import {sleep, getCurrentSelection} from './utils';
 
 export class REPLProcess {
@@ -11,7 +11,7 @@ export class REPLProcess {
     private log: coc.OutputChannel;
 
     constructor(private title: string, private progPath: string, private progArgs: string[]) {
-        this.log = coc.workspace.createOutputChannel(title)
+        this.log = window.createOutputChannel(title)
         this.onExited = this.onExitedEmitter.event;
     }
 
@@ -25,14 +25,14 @@ export class REPLProcess {
 
         this.log.appendLine(`${this.title} starting.`)
 
-        this.consoleTerminal = await coc.workspace.createTerminal({
+        this.consoleTerminal = await window.createTerminal({
             name: this.title,
             shellPath: this.progPath,
             shellArgs: this.progArgs
         })
 
         this.consoleCloseSubscription =
-            coc.workspace.onDidCloseTerminal(
+            window.onDidCloseTerminal(
                 (terminal) => {
                     if (terminal === this.consoleTerminal) {
                         this.log.appendLine(`${this.title} terminated or terminal UI was closed`);

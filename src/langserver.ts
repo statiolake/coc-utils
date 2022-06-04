@@ -1,4 +1,4 @@
-import {workspace, ExtensionContext, MsgTypes} from 'coc.nvim'
+import {ExtensionContext, MsgTypes, window} from 'coc.nvim'
 import {httpsGet, httpsGetJson, HttpsOpts, checkIfFileExists} from "./utils"
 import fs = require("fs");
 import path = require("path");
@@ -113,7 +113,7 @@ export class LanguageServerProvider {
     }
 
     public async downloadLanguageServer(): Promise<void> {
-        let item = workspace.createStatusBarItem(0, {progress: true})
+        let item = window.createStatusBarItem(0, {progress: true})
 
         try {
             if (!fs.existsSync(this.extensionStoragePath)) {
@@ -140,7 +140,7 @@ export class LanguageServerProvider {
 
             item.text = `Downloading ${this.languageServerName}`
             item.show()
-            workspace.showMessage(`Downloading ${this.languageServerName}`, 'more')
+            window.showInformationMessage(`Downloading ${this.languageServerName}`, 'more')
 
             await httpsGet(downinfo.url, (resolve, _, res) => {
                 let file = fs.createWriteStream(this.languageServerZip)
@@ -150,7 +150,7 @@ export class LanguageServerProvider {
 
             item.text = `Extracting ${this.languageServerName}`
             item.show()
-            workspace.showMessage(`Extracting ${this.languageServerName}`, 'more')
+            window.showInformationMessage(`Extracting ${this.languageServerName}`, 'more')
 
 
             await new Promise<void>((resolve, reject) => {

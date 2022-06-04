@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"skipLibCheck": true,
 		"noUnusedLocals": false,
 		"noUnusedParameters": false,
 		"noImplicitAny": true,
@@ -16,6 +17,7 @@
         "declaration": true
 	},
 	"exclude": [
-		"node_modules"
+		"node_modules",
+		"out"
 	]
 }
