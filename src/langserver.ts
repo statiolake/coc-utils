@@ -67,7 +67,22 @@ export class LanguageServerProvider {
         this.languageServerExe = path.join(this.languageServerDirectory, this.languageServerPackage.executable)
     }
 
-    async fetchDownloadInfo(platfile: string | RegExp): Promise<IDownloadInfo> {
+    saveLocalDownloadInfo(inf: IDownloadInfo) {
+        let content = JSON.stringify(inf)
+        let fname = path.join(this.extensionStoragePath, "downloadinfo.json")
+        fs.writeFileSync(fname, content, 'utf-8')
+    }
+
+    public loadLocalDownloadInfo(): IDownloadInfo {
+        let fname = path.join(this.extensionStoragePath, "downloadinfo.json")
+        if (!checkIfFileExists(fname)) {
+            return null
+        }
+        return JSON.parse(fs.readFileSync(fname, 'utf-8'))
+    }
+
+    public async fetchDownloadInfo(): Promise<IDownloadInfo> {
+        const platfile = this.languageServerPackage.platformPath;
         if (this.repo.kind === "github") {
             let {repo: repo, channel: channel} = this.repo
             let api_url = `https://api.github.com/repos/${repo}/releases/${channel}`
@@ -97,22 +112,7 @@ export class LanguageServerProvider {
         throw new Error("unsupported repo kind.")
     }
 
-    loadLocalDownloadInfo(): IDownloadInfo {
-        let fname = path.join(this.extensionStoragePath, "downloadinfo.json")
-        if (!checkIfFileExists(fname)) {
-            return null
-        }
-        return JSON.parse(fs.readFileSync(fname, 'utf-8'))
-    }
-
-    saveLocalDownloadInfo(inf: IDownloadInfo) {
-        let content = JSON.stringify(inf)
-        let fname = path.join(this.extensionStoragePath, "downloadinfo.json")
-        fs.writeFileSync(fname, content, 'utf-8')
-    }
-
     public async downloadLanguageServer(): Promise<void> {
-
         let item = workspace.createStatusBarItem(0, {progress: true})
 
         try {
@@ -123,8 +123,7 @@ export class LanguageServerProvider {
             item.text = `Looking for ${this.languageServerName} updates`
             item.show()
 
-            let platfile = this.languageServerPackage.platformPath
-            let downinfo = await this.fetchDownloadInfo(platfile)
+            let downinfo = await this.fetchDownloadInfo()
             let localinfo = this.loadLocalDownloadInfo()
             if (localinfo && localinfo.id === downinfo.id && localinfo.version === downinfo.version) {
                 // update localinfo timestamp and return
@@ -172,7 +171,6 @@ export class LanguageServerProvider {
 
     // returns the full path to the language server executable
     public async getLanguageServer(): Promise<string> {
-
         const plat = getPlatformDetails()
 
         if (!fs.existsSync(this.languageServerExe) || this.shouldRegularUpdate()) {
@@ -184,6 +182,13 @@ export class LanguageServerProvider {
             fs.chmodSync(this.languageServerExe, "755")
         }
 
+        return this.languageServerExe
+    }
+
+    // returns the full path to the language server executable if it is
+    // already downloaded, otherwise returns null.
+    public getLanguageServerIfDownloaded(): string | null {
+        if (!fs.existsSync(this.languageServerExe)) return null;
         return this.languageServerExe
     }
 
