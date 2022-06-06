@@ -199,9 +199,22 @@ export class LanguageServerProvider {
             break;
 
           case "gzip":
-            createReadStream(this.languageServerArchive)
-              .pipe(createGunzip())
-              .pipe(createWriteStream(this.languageServerExe));
+            const read = createReadStream(this.languageServerArchive).on(
+              "error",
+              (err) => {
+                gunzip.end();
+                reject(err);
+              }
+            );
+            const gunzip = createGunzip().on("error", (err) => {
+              out.end();
+              reject(err);
+            });
+            const out = createWriteStream(this.languageServerExe).on(
+              "error",
+              reject
+            );
+            read.pipe(gunzip).pipe(out).on("finish", resolve);
             break;
         }
       });
