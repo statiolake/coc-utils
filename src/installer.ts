@@ -13,13 +13,13 @@ import {
 } from "./langserver";
 
 type EnsureInstalledResult =
-  | { available: true }
+  | { available: true; path: string }
   | ({ available: false } & (
       | { installed: true }
       | { installed: false; error: any }
     ));
 
-type EnsureLatestResult =
+type EnsureUpdatedResult =
   | { status: "customPath" | "upToDate" }
   | ({
       status: "outdated";
@@ -76,7 +76,7 @@ export class ServerInstaller {
       return { result: "customPath" };
     }
 
-    const currentVersion = this.provider.loadLocalDownloadInfo().version;
+    const currentVersion = this.provider.loadLocalDownloadInfo()?.version;
     const latestVersion = (await this.provider.fetchDownloadInfo()).version;
     return currentVersion !== latestVersion
       ? {
@@ -103,7 +103,7 @@ export class ServerInstaller {
     ask: boolean
   ): Promise<EnsureInstalledResult> {
     if (this.checkInstalled()) {
-      return { available: true };
+      return { available: true, path: this.path! };
     }
 
     if (this.customPath) {
@@ -154,6 +154,7 @@ export class ServerInstaller {
       await this.install();
       return {
         available: true,
+        path: this.path!,
         installed: true,
       };
     } catch (err) {
@@ -173,7 +174,7 @@ export class ServerInstaller {
     doInstall: boolean,
     showMessage: boolean,
     runningClient?: LanguageClient
-  ): Promise<EnsureLatestResult> {
+  ): Promise<EnsureUpdatedResult> {
     let currentVersion: string;
     let latestVersion: string;
     try {
