@@ -3,13 +3,11 @@
 import fs = require("fs");
 import os = require("os");
 import path = require("path");
-import { workspace } from "coc.nvim";
-import { Uri, fetch } from "coc.nvim";
-import { IncomingMessage, Agent } from "http";
-import tunnel from "tunnel";
-
+import { fetch, Uri, workspace } from "coc.nvim";
 import { http, https } from "follow-redirects";
-import { UrlWithStringQuery, parse } from "url";
+import { Agent, IncomingMessage } from "http";
+import tunnel from "tunnel";
+import { parse, UrlWithStringQuery } from "url";
 
 export type FstArg<T> = T extends (arg1: infer U, ...args: any[]) => any
   ? U
@@ -37,7 +35,7 @@ export function ensurePathExists(targetPath: string) {
   // Ensure that the path exists
   try {
     fs.mkdirSync(targetPath);
-  } catch (e) {
+  } catch (e: any) {
     // If the exception isn't to indicate that the folder exists already, rethrow it.
     if (e.code !== "EEXIST") {
       throw e;
@@ -96,11 +94,16 @@ export async function getCurrentSelection(mode: string) {
   return [];
 }
 
-export function getAgent(endpoint: UrlWithStringQuery): Agent {
+export function getAgent(endpoint: UrlWithStringQuery): Agent | undefined {
+  if (!endpoint.protocol) return undefined;
+  if (!endpoint.hostname) return undefined;
+
   let key = endpoint.protocol.startsWith("https")
     ? "HTTPS_PROXY"
     : "HTTP_PROXY";
-  let env = process.env[key] || process.env[key.toLowerCase()];
+
+  let env: string | null =
+    process.env[key] || process.env[key.toLowerCase()] || null;
   if (env) {
     let noProxy = process.env.NO_PROXY || process.env.no_proxy;
     if (noProxy === "*") {
@@ -156,13 +159,14 @@ export function getAgent(endpoint: UrlWithStringQuery): Agent {
       return agent;
     }
   }
-  return null;
+
+  return undefined;
 }
 
 export function httpsGet<T>(
   url: string,
   cb: (
-    resolve: (value?: T | PromiseLike<T>) => void,
+    resolve: (value: T | PromiseLike<T>) => void,
     reject: (reason?: any) => void,
     res: IncomingMessage
   ) => void

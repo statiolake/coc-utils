@@ -5,6 +5,7 @@
     "noUnusedParameters": false,
     "noImplicitAny": true,
     "noImplicitReturns": true,
+    "strict": true,
     "target": "es6",
     "module": "commonjs",
     "moduleResolution": "node",

@@ -1,6 +1,6 @@
 import proc from "child_process";
-import which from "which";
 import os from "os";
+import which from "which";
 
 export interface IDotnetSdk {
   version: string;
@@ -40,8 +40,10 @@ export class DotnetResolver {
     });
   }
 
-  public static async getDotnetInfo(): Promise<IDotnetInfo> {
+  public static async getDotnetInfo(): Promise<IDotnetInfo | undefined> {
     const dotnet = await DotnetResolver.getDotnetExecutable();
+    if (!dotnet) return undefined;
+
     const p = proc.spawnSync(dotnet, ["--info"]);
     const out = p.stdout.toString().split(os.EOL);
     let info: IDotnetInfo = {

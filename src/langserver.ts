@@ -97,10 +97,10 @@ export class LanguageServerProvider {
     fs.writeFileSync(fname, content, "utf-8");
   }
 
-  public loadLocalDownloadInfo(): IDownloadInfo {
+  public loadLocalDownloadInfo(): IDownloadInfo | undefined {
     let fname = path.join(this.extensionStoragePath, "downloadinfo.json");
     if (!checkIfFileExists(fname)) {
-      return null;
+      return undefined;
     }
     return JSON.parse(fs.readFileSync(fname, "utf-8"));
   }
@@ -245,14 +245,14 @@ export class LanguageServerProvider {
   }
 
   // returns the full path to the language server executable if it is
-  // already downloaded, otherwise returns null.
-  public getLanguageServerIfDownloaded(): string | null {
-    if (!fs.existsSync(this.languageServerExe)) return null;
+  // already downloaded, otherwise returns undefined.
+  public getLanguageServerIfDownloaded(): string | undefined {
+    if (!fs.existsSync(this.languageServerExe)) return undefined;
     return this.languageServerExe;
   }
 
-  public getLanguageServerVersion(): string {
-    return this.loadLocalDownloadInfo().version;
+  public getLanguageServerVersion(): string | undefined {
+    return this.loadLocalDownloadInfo()?.version;
   }
 
   shouldRegularUpdate(): boolean {

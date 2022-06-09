@@ -11,7 +11,7 @@ export function createProgressListeners(client: LanguageClient) {
     countChecked = 0;
     nFiles = 0;
     title: string = "";
-    statusBarItem: StatusBarItem = null;
+    statusBarItem: StatusBarItem | null = null;
 
     startProgress(start: StartProgress) {
       // TODO implement user cancellation (???)
@@ -35,11 +35,13 @@ export function createProgressListeners(client: LanguageClient) {
     }
 
     endProgress() {
-      this.countChecked = 0;
-      this.nFiles = 0;
-      this.statusBarItem.hide();
-      this.statusBarItem.dispose();
-      this.statusBarItem = null;
+      if (this.statusBarItem) {
+        this.countChecked = 0;
+        this.nFiles = 0;
+        this.statusBarItem.hide();
+        this.statusBarItem.dispose();
+        this.statusBarItem = null;
+      }
     }
   })();
 

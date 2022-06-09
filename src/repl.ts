@@ -1,12 +1,12 @@
 import coc = require("coc.nvim");
-import { workspace, window } from "coc.nvim";
-import { sleep, getCurrentSelection } from "./utils";
+import { window, workspace } from "coc.nvim";
+import { getCurrentSelection, sleep } from "./utils";
 
 export class REPLProcess {
   public onExited: coc.Event<void>;
   private onExitedEmitter = new coc.Emitter<void>();
-  private consoleTerminal: coc.Terminal = undefined;
-  private consoleCloseSubscription: coc.Disposable;
+  private consoleTerminal: coc.Terminal | undefined = undefined;
+  private consoleCloseSubscription: coc.Disposable | undefined = undefined;
   private log: coc.OutputChannel;
 
   constructor(
@@ -56,9 +56,11 @@ export class REPLProcess {
   }
 
   public async scrollToBottom() {
-    this.consoleTerminal.show(false);
-    await sleep(200);
-    await coc.workspace.nvim.command("wincmd w");
+    if (this.consoleTerminal) {
+      this.consoleTerminal.show(false);
+      await sleep(200);
+      await coc.workspace.nvim.command("wincmd w");
+    }
   }
 
   public dispose() {
@@ -86,7 +88,7 @@ export interface IREPLDescriptor {
 }
 
 export class REPLProvider {
-  private m_proc: REPLProcess = undefined;
+  private m_proc: REPLProcess | undefined = undefined;
 
   constructor(public desc: IREPLDescriptor) {}
 
@@ -119,20 +121,22 @@ export class REPLProvider {
 
     const win = await workspace.nvim.window;
 
-    // TODO: move to workspace.getCurrentSelection when we get an answer:
-    // https://github.com/neoclide/coc.nvim/issues/933
-    const content = await getCurrentSelection(mode);
-    for (let line of content) {
-      await this.m_proc.eval(line);
-    }
-    await this.m_proc.eval(this.desc.commit);
-    // see :help feedkeys
-    await workspace.nvim.call(
-      "eval",
-      `feedkeys("\\<esc>${content.length}j", "in")`
-    );
-    // await currentREPL.scrollToBottom()
+    if (this.m_proc) {
+      // TODO: move to workspace.getCurrentSelection when we get an answer:
+      // https://github.com/neoclide/coc.nvim/issues/933
+      const content = await getCurrentSelection(mode);
+      for (let line of content) {
+        await this.m_proc.eval(line);
+      }
+      await this.m_proc.eval(this.desc.commit);
+      // see :help feedkeys
+      await workspace.nvim.call(
+        "eval",
+        `feedkeys("\\<esc>${content.length}j", "in")`
+      );
+      // await currentREPL.scrollToBottom()
 
-    await workspace.nvim.setWindow(win);
+      await workspace.nvim.setWindow(win);
+    }
   }
 }

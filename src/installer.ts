@@ -23,11 +23,11 @@ type EnsureUpdatedResult =
   | { status: "customPath" | "upToDate" }
   | ({
       status: "outdated";
-      startedClientDisposable: Disposable | null;
+      startedClientDisposable: Disposable | undefined;
     } & (
       | {
           updated: false;
-          versions: { oldVersion: string; newVersion: string } | null;
+          versions: { oldVersion: string; newVersion: string } | undefined;
           error: any;
         }
       | {
@@ -44,7 +44,7 @@ export class ServerInstaller {
     extctx: ExtensionContext,
     packs: ILanguageServerPackages,
     private readonly repo: LanguageServerRepository,
-    private readonly customPath: string | null
+    private readonly customPath: string | undefined
   ) {
     this.provider = new LanguageServerProvider(extctx, serverName, packs, repo);
   }
@@ -53,10 +53,10 @@ export class ServerInstaller {
     return !!this.customPath;
   }
 
-  public get path(): string | null {
+  public get path(): string | undefined {
     const customPath = this.customPath;
     if (customPath) {
-      return existsSync(customPath) ? customPath : null;
+      return existsSync(customPath) ? customPath : undefined;
     }
     return this.provider.getLanguageServerIfDownloaded();
   }
@@ -77,7 +77,12 @@ export class ServerInstaller {
     }
 
     const currentVersion = this.provider.loadLocalDownloadInfo()?.version;
+    if (currentVersion === undefined) {
+      throw new Error("server is not installed yet.");
+    }
+
     const latestVersion = (await this.provider.fetchDownloadInfo()).version;
+
     return currentVersion !== latestVersion
       ? {
           result: "different",
@@ -201,9 +206,9 @@ export class ServerInstaller {
       return {
         status: "outdated",
         updated: false,
-        versions: null,
+        versions: undefined,
         error: err,
-        startedClientDisposable: null,
+        startedClientDisposable: undefined,
       };
     }
 
@@ -218,7 +223,7 @@ export class ServerInstaller {
         updated: false,
         versions,
         error: `doInstall is not set`,
-        startedClientDisposable: null,
+        startedClientDisposable: undefined,
       };
     }
 
@@ -243,7 +248,7 @@ export class ServerInstaller {
         updated: false,
         versions,
         error: `Cancelled by user`,
-        startedClientDisposable: null,
+        startedClientDisposable: undefined,
       };
     }
 
@@ -258,9 +263,7 @@ export class ServerInstaller {
         `Failed to upgrade ${this.serverName}: ${err}`
       );
 
-      const startedClientDisposable = runningClient
-        ? runningClient.start()
-        : null;
+      const startedClientDisposable = runningClient?.start();
       return {
         status: "outdated",
         updated: false,
@@ -270,10 +273,7 @@ export class ServerInstaller {
       };
     }
 
-    const startedClientDisposable = runningClient
-      ? runningClient.start()
-      : null;
-
+    const startedClientDisposable = runningClient?.start();
     return {
       status: "outdated",
       updated: true,
