@@ -1,3 +1,4 @@
+import assert from "assert";
 import {
   commands,
   Disposable,
@@ -13,11 +14,11 @@ import {
 } from "./langserver";
 
 type EnsureInstalledResult =
-  | { available: true; path: string }
-  | ({ available: false } & (
-      | { installed: true }
-      | { installed: false; error: any }
-    ));
+  | ({ available: true; path: string } & (
+      | { installed: false }
+      | { installed: true; version: string }
+    ))
+  | { available: false; error: any };
 
 type EnsureUpdatedResult =
   | { status: "customPath" | "upToDate" }
@@ -27,12 +28,14 @@ type EnsureUpdatedResult =
     } & (
       | {
           updated: false;
-          versions: { oldVersion: string; newVersion: string } | undefined;
+          versions:
+            | { oldVersion: string | undefined; newVersion: string }
+            | undefined;
           error: any;
         }
       | {
           updated: true;
-          versions: { oldVersion: string; newVersion: string };
+          versions: { oldVersion: string | undefined; newVersion: string };
         }
     ));
 
@@ -67,6 +70,7 @@ export class ServerInstaller {
   }
 
   public async checkVersion(): Promise<
+    | { result: "notInstalled" }
     | { result: "customPath" }
     | { result: "different"; currentVersion: string; latestVersion: string }
     | { result: "same" }
@@ -78,7 +82,7 @@ export class ServerInstaller {
 
     const currentVersion = this.provider.loadLocalDownloadInfo()?.version;
     if (currentVersion === undefined) {
-      throw new Error("server is not installed yet.");
+      return { result: "notInstalled" };
     }
 
     const latestVersion = (await this.provider.fetchDownloadInfo()).version;
@@ -104,11 +108,11 @@ export class ServerInstaller {
   }
 
   public async ensureInstalled(
-    doInstall: boolean,
-    ask: boolean
+    ask: boolean,
+    doInstall: boolean
   ): Promise<EnsureInstalledResult> {
     if (this.checkInstalled()) {
-      return { available: true, path: this.path! };
+      return { available: true, path: this.path!, installed: false };
     }
 
     if (this.customPath) {
@@ -117,7 +121,6 @@ export class ServerInstaller {
       // install the server for the user at the custom path.
       return {
         available: false,
-        installed: false,
         error:
           `Custom server path (${this.customPath}) is specified,` +
           ` but the server is not found`,
@@ -129,7 +132,6 @@ export class ServerInstaller {
     if (!doInstall) {
       return {
         available: false,
-        installed: false,
         error: `doInstall is not set`,
       };
     }
@@ -150,17 +152,18 @@ export class ServerInstaller {
     if (ans !== yes) {
       return {
         available: false,
-        installed: false,
         error: `Cancelled by user`,
       };
     }
 
     try {
       await this.install();
+      const version = this.provider.getLanguageServerVersion()!;
       return {
         available: true,
         path: this.path!,
         installed: true,
+        version: version,
       };
     } catch (err) {
       await window.showErrorMessage(
@@ -168,7 +171,6 @@ export class ServerInstaller {
       );
       return {
         available: false,
-        installed: false,
         error: err,
       };
     }
@@ -178,12 +180,43 @@ export class ServerInstaller {
     ask: boolean,
     doInstall: boolean,
     showMessage: boolean,
-    runningClient?: LanguageClient
+    runningClient: LanguageClient | undefined
   ): Promise<EnsureUpdatedResult> {
     let currentVersion: string;
     let latestVersion: string;
     try {
       const result = await this.checkVersion();
+
+      if (result.result === "notInstalled") {
+        if (runningClient?.needsStop()) {
+          runningClient?.stop();
+        }
+
+        const result = await this.ensureInstalled(ask, doInstall);
+        if (result.available) {
+          // Previously not installed but ensureInstalled() make it available,
+          // so it should successfully install the server.
+          assert(result.installed);
+
+          return {
+            status: "outdated",
+            startedClientDisposable: runningClient?.start(),
+            updated: true,
+            versions: {
+              oldVersion: undefined,
+              newVersion: result.version,
+            },
+          };
+        } else {
+          return {
+            status: "outdated",
+            startedClientDisposable: runningClient?.start(),
+            updated: false,
+            versions: undefined,
+            error: result.error,
+          };
+        }
+      }
 
       if (result.result === "customPath") {
         return { status: "customPath" };
