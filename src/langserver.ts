@@ -169,7 +169,6 @@ export class LanguageServerProvider {
 
       item.text = `Downloading ${this.languageServerName}`;
       item.show();
-      window.showInformationMessage(`Downloading ${this.languageServerName}`);
 
       await httpsGet(downinfo.url, (resolve, _, res) => {
         let file = fs.createWriteStream(this.languageServerArchive);
@@ -179,7 +178,6 @@ export class LanguageServerProvider {
 
       item.text = `Extracting ${this.languageServerName}`;
       item.show();
-      window.showInformationMessage(`Extracting ${this.languageServerName}`);
 
       await new Promise<void>((resolve, reject) => {
         switch (this.languageServerArchiver) {
