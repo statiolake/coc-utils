@@ -96,7 +96,10 @@ export class ServerInstaller {
       : { result: "same" };
   }
 
-  public async install(): Promise<void> {
+  public async install(force: boolean = false): Promise<void> {
+    if (force) {
+      this.provider.cleanupLanguageServer();
+    }
     await this.provider.downloadLanguageServer();
   }
 
