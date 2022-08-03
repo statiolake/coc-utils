@@ -1,6 +1,6 @@
 {
-  "name": "coc-utils",
-  "version": "0.0.17",
+  "name": "@statiolake/coc-utils",
+  "version": "0.0.1",
   "description": "Utilities for coc.nvim extensions",
   "main": "out/index.js",
   "scripts": {
@@ -33,7 +33,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/coc-extensions/coc-utils.git"
+    "url": "git+https://github.com/statiolake/coc-utils.git"
   },
   "keywords": [
     "extension",
@@ -43,10 +43,10 @@
     "Programming Languages",
     "coc.nvim"
   ],
-  "author": "Yatao Li",
+  "author": "statiolake",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/coc-extensions/coc-utils/issues"
+    "url": "https://github.com/statiolake/coc-utils/issues"
   },
-  "homepage": "https://github.com/coc-extensions/coc-utils#readme"
+  "homepage": "https://github.com/statiolake/coc-utils#readme"
 }
