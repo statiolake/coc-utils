@@ -34,7 +34,7 @@ export function sleep(ms: number) {
 export function ensurePathExists(targetPath: string) {
   // Ensure that the path exists
   try {
-    fs.mkdirSync(targetPath);
+    fs.mkdirSync(targetPath, { recursive: true });
   } catch (e: any) {
     // If the exception isn't to indicate that the folder exists already, rethrow it.
     if (e.code !== "EEXIST") {

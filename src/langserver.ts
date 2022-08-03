@@ -144,7 +144,7 @@ export class LanguageServerProvider {
 
     try {
       if (!fs.existsSync(this.extensionStoragePath)) {
-        fs.mkdirSync(this.extensionStoragePath);
+        fs.mkdirSync(this.extensionStoragePath, { recursive: true });
       }
 
       item.text = `Looking for ${this.languageServerName} updates`;
@@ -165,7 +165,7 @@ export class LanguageServerProvider {
 
       this.cleanupLanguageServer();
 
-      fs.mkdirSync(this.languageServerDirectory);
+      fs.mkdirSync(this.languageServerDirectory, { recursive: true });
 
       item.text = `Downloading ${this.languageServerName}`;
       item.show();
