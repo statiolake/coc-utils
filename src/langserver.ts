@@ -140,86 +140,83 @@ export class LanguageServerProvider {
   }
 
   public async downloadLanguageServer(): Promise<void> {
-    let item = window.createStatusBarItem(0, { progress: true });
-
-    try {
-      if (!fs.existsSync(this.extensionStoragePath)) {
-        fs.mkdirSync(this.extensionStoragePath, { recursive: true });
-      }
-
-      item.text = `Looking for ${this.languageServerName} updates`;
-      item.show();
-
-      let downinfo = await this.fetchDownloadInfo();
-      let localinfo = this.loadLocalDownloadInfo();
-      if (
-        localinfo &&
-        localinfo.id === downinfo.id &&
-        localinfo.version === downinfo.version
-      ) {
-        // update localinfo timestamp and return
-        localinfo.downloadedTime = Date.now();
-        this.saveLocalDownloadInfo(localinfo);
-        return;
-      }
-
-      this.cleanupLanguageServer();
-
-      fs.mkdirSync(this.languageServerDirectory, { recursive: true });
-
-      item.text = `Downloading ${this.languageServerName}`;
-      item.show();
-
-      await httpsGet(downinfo.url, (resolve, _, res) => {
-        let file = fs.createWriteStream(this.languageServerArchive);
-        let stream = res.pipe(file);
-        stream.on("finish", resolve);
-      });
-
-      item.text = `Extracting ${this.languageServerName}`;
-      item.show();
-
-      await new Promise<void>((resolve, reject) => {
-        switch (this.languageServerArchiver) {
-          case "zip":
-            unzip(
-              this.languageServerArchive,
-              { dir: this.languageServerDirectory },
-              (err: any) => {
-                if (err) reject(err);
-                else resolve();
-              }
-            );
-            break;
-
-          case "gzip":
-            const read = createReadStream(this.languageServerArchive).on(
-              "error",
-              (err) => {
-                gunzip.end();
-                reject(err);
-              }
-            );
-            const gunzip = createGunzip().on("error", (err) => {
-              out.end();
-              reject(err);
-            });
-            const out = createWriteStream(this.languageServerExe).on(
-              "error",
-              reject
-            );
-            read.pipe(gunzip).pipe(out).on("finish", resolve);
-            break;
+    await window.withProgress(
+      { title: `Installing ${this.languageServerName}` },
+      async (progress, token) => {
+        if (!fs.existsSync(this.extensionStoragePath)) {
+          fs.mkdirSync(this.extensionStoragePath, { recursive: true });
         }
-      });
 
-      fs.unlinkSync(this.languageServerArchive);
-      // update timestamp
-      downinfo.downloadedTime = Date.now();
-      this.saveLocalDownloadInfo(downinfo);
-    } finally {
-      item.dispose();
-    }
+        progress.report({
+          message: `Looking for ${this.languageServerName} updates`,
+        });
+
+        let downinfo = await this.fetchDownloadInfo();
+        let localinfo = this.loadLocalDownloadInfo();
+        if (
+          localinfo &&
+          localinfo.id === downinfo.id &&
+          localinfo.version === downinfo.version
+        ) {
+          // update localinfo timestamp and return
+          localinfo.downloadedTime = Date.now();
+          this.saveLocalDownloadInfo(localinfo);
+          return;
+        }
+
+        this.cleanupLanguageServer();
+        fs.mkdirSync(this.languageServerDirectory, { recursive: true });
+
+        progress.report({ message: `Downloading ${this.languageServerName}` });
+
+        await httpsGet(downinfo.url, (resolve, _, res) => {
+          let file = fs.createWriteStream(this.languageServerArchive);
+          let stream = res.pipe(file);
+          stream.on("finish", resolve);
+        });
+
+        progress.report({ message: `Extracting ${this.languageServerName}` });
+
+        await new Promise<void>((resolve, reject) => {
+          switch (this.languageServerArchiver) {
+            case "zip":
+              unzip(
+                this.languageServerArchive,
+                { dir: this.languageServerDirectory },
+                (err: any) => {
+                  if (err) reject(err);
+                  else resolve();
+                }
+              );
+              break;
+
+            case "gzip":
+              const read = createReadStream(this.languageServerArchive).on(
+                "error",
+                (err) => {
+                  gunzip.end();
+                  reject(err);
+                }
+              );
+              const gunzip = createGunzip().on("error", (err) => {
+                out.end();
+                reject(err);
+              });
+              const out = createWriteStream(this.languageServerExe).on(
+                "error",
+                reject
+              );
+              read.pipe(gunzip).pipe(out).on("finish", resolve);
+              break;
+          }
+        });
+
+        fs.unlinkSync(this.languageServerArchive);
+        // update timestamp
+        downinfo.downloadedTime = Date.now();
+        this.saveLocalDownloadInfo(downinfo);
+      }
+    );
   }
 
   public cleanupLanguageServer(): boolean {
