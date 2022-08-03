@@ -1,6 +1,6 @@
 {
   "name": "@statiolake/coc-utils",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Utilities for coc.nvim extensions",
   "main": "out/index.js",
   "scripts": {
