@@ -91,14 +91,18 @@ export class LanguageServerProvider {
     );
   }
 
+  get localDownloadInfoPath(): string {
+    return path.join(this.extensionStoragePath, "downloadinfo.json");
+  }
+
   saveLocalDownloadInfo(inf: IDownloadInfo) {
     let content = JSON.stringify(inf);
-    let fname = path.join(this.extensionStoragePath, "downloadinfo.json");
+    let fname = this.localDownloadInfoPath;
     fs.writeFileSync(fname, content, "utf-8");
   }
 
   public loadLocalDownloadInfo(): IDownloadInfo | undefined {
-    let fname = path.join(this.extensionStoragePath, "downloadinfo.json");
+    let fname = this.localDownloadInfoPath;
     if (!checkIfFileExists(fname)) {
       return undefined;
     }
@@ -159,9 +163,7 @@ export class LanguageServerProvider {
         return;
       }
 
-      if (fs.existsSync(this.languageServerDirectory)) {
-        rimraf.sync(this.languageServerDirectory);
-      }
+      this.cleanupLanguageServer();
 
       fs.mkdirSync(this.languageServerDirectory);
 
@@ -220,6 +222,15 @@ export class LanguageServerProvider {
     } finally {
       item.dispose();
     }
+  }
+
+  public cleanupLanguageServer(): boolean {
+    if (fs.existsSync(this.languageServerDirectory)) {
+      rimraf.sync(this.languageServerDirectory);
+      rimraf.sync(this.localDownloadInfoPath);
+      return true;
+    }
+    return false;
   }
 
   // returns the full path to the language server executable
