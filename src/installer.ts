@@ -261,7 +261,7 @@ export class ServerInstaller {
     }
 
     const update = "Update";
-    const openRelease = "Check_GitHub_Release";
+    const openRelease = "Check GitHub Release";
     const cancel = "Cancel";
     const choices =
       this.repo.kind == "github"
