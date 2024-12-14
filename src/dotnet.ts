@@ -28,16 +28,13 @@ export interface IDotnetInfo {
 }
 
 export class DotnetResolver {
-  public static getDotnetExecutable(): Promise<string | undefined> {
-    return new Promise((resolve, _) => {
-      which("dotnet", (err, path) => {
-        if (err) {
-          resolve(undefined);
-        } else {
-          resolve(path);
-        }
-      });
-    });
+  public static async getDotnetExecutable(): Promise<string | undefined> {
+    try {
+      return await which("dotnet");
+    } catch (e) {
+      console.error(`failed to get dotnet executable: ${e}`);
+      return undefined;
+    }
   }
 
   public static async getDotnetInfo(): Promise<IDotnetInfo | undefined> {
@@ -62,7 +59,7 @@ export class DotnetResolver {
     const sp = (s: string, sep: string) => {
       for (var i = 0; i < s.length; ++i) {
         if (s[i] === sep) {
-          return [s.substr(0, i), s.substr(i + 1)];
+          return [s.slice(0, i), s.slice(i + 1)];
         }
       }
       return [s];
@@ -77,7 +74,7 @@ export class DotnetResolver {
     };
     const detup = (s: string) => {
       let [x, path] = sp(s, "[");
-      path = path.substr(0, path.length - 1);
+      path = path.slice(0, path.length - 1);
       return { t: x.trim().split(" "), p: path };
     };
     const parse: { [index: string]: (s: string) => void } = {

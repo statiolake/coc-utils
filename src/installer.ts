@@ -1,11 +1,5 @@
 import assert from "assert";
-import {
-  commands,
-  Disposable,
-  ExtensionContext,
-  LanguageClient,
-  window,
-} from "coc.nvim";
+import { commands, ExtensionContext, LanguageClient, window } from "coc.nvim";
 import { existsSync } from "fs";
 import {
   ILanguageServerPackages,
@@ -24,7 +18,6 @@ type EnsureUpdatedResult =
   | { status: "customPath" | "upToDate" }
   | ({
       status: "outdated";
-      startedClientDisposable: Disposable | undefined;
     } & (
       | {
           updated: false;
@@ -47,7 +40,7 @@ export class ServerInstaller {
     extctx: ExtensionContext,
     packs: ILanguageServerPackages,
     private readonly repo: LanguageServerRepository,
-    private readonly customPath: string | undefined
+    private readonly customPath: string | undefined,
   ) {
     this.provider = new LanguageServerProvider(extctx, serverName, packs, repo);
   }
@@ -106,13 +99,13 @@ export class ServerInstaller {
   public async openReleases(): Promise<void> {
     await commands.executeCommand(
       "vscode.open",
-      "https://github.com/OmniSharp/omnisharp-roslyn/releases"
+      "https://github.com/OmniSharp/omnisharp-roslyn/releases",
     );
   }
 
   public async ensureInstalled(
     ask: boolean,
-    doInstall: boolean
+    doInstall: boolean,
   ): Promise<EnsureInstalledResult> {
     if (this.checkInstalled()) {
       return { available: true, path: this.path!, installed: false };
@@ -148,7 +141,7 @@ export class ServerInstaller {
     const ans = ask
       ? await window.showErrorMessage(
           `${this.serverName} is not found. Download from ${source}?`,
-          ...choices
+          ...choices,
         )
       : yes;
 
@@ -170,7 +163,7 @@ export class ServerInstaller {
       };
     } catch (err) {
       await window.showErrorMessage(
-        `Failed to download ${this.serverName}: ${err}`
+        `Failed to download ${this.serverName}: ${err}`,
       );
       return {
         available: false,
@@ -183,7 +176,7 @@ export class ServerInstaller {
     ask: boolean,
     doInstall: boolean,
     showMessage: boolean,
-    runningClient: LanguageClient | undefined
+    runningClient: LanguageClient | undefined,
   ): Promise<EnsureUpdatedResult> {
     let currentVersion: string;
     let latestVersion: string;
@@ -196,6 +189,7 @@ export class ServerInstaller {
         }
 
         const result = await this.ensureInstalled(ask, doInstall);
+        await runningClient?.start();
         if (result.available) {
           // Previously not installed but ensureInstalled() make it available,
           // so it should successfully install the server.
@@ -203,7 +197,6 @@ export class ServerInstaller {
 
           return {
             status: "outdated",
-            startedClientDisposable: runningClient?.start(),
             updated: true,
             versions: {
               oldVersion: undefined,
@@ -213,7 +206,6 @@ export class ServerInstaller {
         } else {
           return {
             status: "outdated",
-            startedClientDisposable: runningClient?.start(),
             updated: false,
             versions: undefined,
             error: result.error,
@@ -228,7 +220,7 @@ export class ServerInstaller {
       if (result.result === "same") {
         if (showMessage) {
           await window.showInformationMessage(
-            `Your ${this.serverName} is up to date.`
+            `Your ${this.serverName} is up to date.`,
           );
         }
 
@@ -244,7 +236,6 @@ export class ServerInstaller {
         updated: false,
         versions: undefined,
         error: err,
-        startedClientDisposable: undefined,
       };
     }
 
@@ -259,7 +250,6 @@ export class ServerInstaller {
         updated: false,
         versions,
         error: `doInstall is not set`,
-        startedClientDisposable: undefined,
       };
     }
 
@@ -274,7 +264,7 @@ export class ServerInstaller {
       ? await window.showInformationMessage(
           `${this.serverName} has a new release: ${latestVersion}` +
             ` (current: ${currentVersion})`,
-          ...choices
+          ...choices,
         )
       : update;
 
@@ -284,7 +274,6 @@ export class ServerInstaller {
         updated: false,
         versions,
         error: `Cancelled by user`,
-        startedClientDisposable: undefined,
       };
     }
 
@@ -296,25 +285,23 @@ export class ServerInstaller {
       await this.install();
     } catch (err) {
       await window.showErrorMessage(
-        `Failed to upgrade ${this.serverName}: ${err}`
+        `Failed to upgrade ${this.serverName}: ${err}`,
       );
 
-      const startedClientDisposable = runningClient?.start();
+      await runningClient?.start();
       return {
         status: "outdated",
         updated: false,
         versions,
         error: err,
-        startedClientDisposable,
       };
     }
 
-    const startedClientDisposable = runningClient?.start();
+    await runningClient?.start();
     return {
       status: "outdated",
       updated: true,
       versions,
-      startedClientDisposable,
     };
   }
 }

@@ -67,7 +67,7 @@ export class LanguageServerProvider {
     extension: ExtensionContext,
     name: string,
     packs: ILanguageServerPackages,
-    private repo: LanguageServerRepository
+    private repo: LanguageServerRepository,
   ) {
     const platsig = getPlatformSignature();
     this.languageServerName = name;
@@ -80,14 +80,14 @@ export class LanguageServerProvider {
 
     this.languageServerDirectory = path.join(
       this.extensionStoragePath,
-      "server"
+      "server",
     );
     this.languageServerArchiver = this.languageServerPackage.archiver ?? "zip";
     this.languageServerArchive =
       this.languageServerDirectory + "." + this.languageServerArchiver;
     this.languageServerExe = path.join(
       this.languageServerDirectory,
-      this.languageServerPackage.executable
+      this.languageServerPackage.executable,
     );
   }
 
@@ -177,26 +177,21 @@ export class LanguageServerProvider {
 
         progress.report({ message: `Extracting ${this.languageServerName}` });
 
-        await new Promise<void>((resolve, reject) => {
-          switch (this.languageServerArchiver) {
-            case "zip":
-              unzip(
-                this.languageServerArchive,
-                { dir: this.languageServerDirectory },
-                (err: any) => {
-                  if (err) reject(err);
-                  else resolve();
-                }
-              );
-              break;
+        switch (this.languageServerArchiver) {
+          case "zip":
+            await unzip(this.languageServerArchive, {
+              dir: this.languageServerDirectory,
+            });
+            break;
 
-            case "gzip":
+          case "gzip":
+            await new Promise<void>((resolve, reject) => {
               const read = createReadStream(this.languageServerArchive).on(
                 "error",
                 (err) => {
                   gunzip.end();
                   reject(err);
-                }
+                },
               );
               const gunzip = createGunzip().on("error", (err) => {
                 out.end();
@@ -204,18 +199,18 @@ export class LanguageServerProvider {
               });
               const out = createWriteStream(this.languageServerExe).on(
                 "error",
-                reject
+                reject,
               );
               read.pipe(gunzip).pipe(out).on("finish", resolve);
-              break;
-          }
-        });
+            });
+            break;
+        }
 
         fs.unlinkSync(this.languageServerArchive);
         // update timestamp
         downinfo.downloadedTime = Date.now();
         this.saveLocalDownloadInfo(downinfo);
-      }
+      },
     );
   }
 

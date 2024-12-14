@@ -25,10 +25,7 @@ export function getPlatformDetails(): IPlatformDetails {
     operatingSystem = OperatingSystem.Linux;
   }
 
-  const isProcess64Bit =
-    process.arch === "x64" ||
-    process.arch === "aarch64" ||
-    process.arch === "arm64";
+  const isProcess64Bit = process.arch === "x64" || process.arch === "arm64";
 
   return {
     operatingSystem,
