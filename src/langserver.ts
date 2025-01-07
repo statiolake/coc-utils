@@ -218,7 +218,7 @@ export class LanguageServerProvider {
               const gunzip = createGunzip().on("error", (err) => {
                 reject(err);
               });
-              const extractor = tar.Extract({
+              const extractor = tar.extract({
                 cwd: this.languageServerDirectory,
               });
               read.pipe(gunzip).pipe(extractor).on("finish", resolve);
