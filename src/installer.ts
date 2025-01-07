@@ -133,19 +133,10 @@ export class ServerInstaller {
     }
 
     // Should try to install server. Ask before it when needed.
-    const yes = "Yes";
-    const cancel = "Cancel";
-    const choices = ask ? [yes, cancel] : [];
     const source =
-      this.repo.kind === "github" ? "GitHub Release" : `${this.repo.url}...`;
-    const ans = ask
-      ? await window.showErrorMessage(
-          `${this.serverName} is not found. Download from ${source}?`,
-          ...choices,
-        )
-      : yes;
-
-    if (ans !== yes) {
+      this.repo.kind === "github" ? "GitHub Release" : `${this.repo.url}`;
+    const message = `${this.serverName} is not found. Download from ${source}?`;
+    if (!ask || !(await window.showPrompt(message))) {
       return {
         available: false,
         error: `Cancelled by user`,
