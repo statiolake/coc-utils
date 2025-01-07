@@ -7,30 +7,56 @@ import {
   LanguageServerRepository,
 } from "./langserver";
 
+type EnsureInstalledResultNotAvailable = {
+  available: false;
+  error: any;
+};
+
+type EnsureInstalledResultSkipped = {
+  available: true;
+  path: string;
+  installed: false;
+};
+
+type EnsureInstalledResultInstalled = {
+  available: true;
+  path: string;
+  installed: true;
+  version: string;
+};
+
 type EnsureInstalledResult =
-  | ({ available: true; path: string } & (
-      | { installed: false }
-      | { installed: true; version: string }
-    ))
-  | { available: false; error: any };
+  | EnsureInstalledResultNotAvailable
+  | EnsureInstalledResultSkipped
+  | EnsureInstalledResultInstalled;
+
+type EnsureUpdatedResultUpToDate = {
+  status: "customPath" | "upToDate";
+};
+
+type EnsureUpdatedResultOutdatedSkipped = {
+  status: "outdated";
+  updated: false;
+  versions: { oldVersion: string | undefined; newVersion: string } | undefined;
+  error: any;
+};
+
+type EnsureUpdatedResultOutdatedUpdated = {
+  status: "outdated";
+  updated: true;
+  versions: { oldVersion: string | undefined; newVersion: string };
+};
 
 type EnsureUpdatedResult =
-  | { status: "customPath" | "upToDate" }
-  | ({
-      status: "outdated";
-    } & (
-      | {
-          updated: false;
-          versions:
-            | { oldVersion: string | undefined; newVersion: string }
-            | undefined;
-          error: any;
-        }
-      | {
-          updated: true;
-          versions: { oldVersion: string | undefined; newVersion: string };
-        }
-    ));
+  | EnsureUpdatedResultUpToDate
+  | EnsureUpdatedResultOutdatedSkipped
+  | EnsureUpdatedResultOutdatedUpdated;
+
+type CheckVersionResult =
+  | { result: "notInstalled" }
+  | { result: "customPath" }
+  | { result: "different"; currentVersion: string; latestVersion: string }
+  | { result: "same" };
 
 export class ServerInstaller {
   private readonly provider: LanguageServerProvider;
@@ -62,12 +88,7 @@ export class ServerInstaller {
     return !!path && existsSync(path);
   }
 
-  public async checkVersion(): Promise<
-    | { result: "notInstalled" }
-    | { result: "customPath" }
-    | { result: "different"; currentVersion: string; latestVersion: string }
-    | { result: "same" }
-  > {
+  public async checkVersion(): Promise<CheckVersionResult> {
     const customPath = this.customPath;
     if (customPath) {
       return { result: "customPath" };
@@ -172,54 +193,54 @@ export class ServerInstaller {
     let currentVersion: string;
     let latestVersion: string;
     try {
-      const result = await this.checkVersion();
+      const versionResult = await this.checkVersion();
 
-      if (result.result === "notInstalled") {
-        if (runningClient?.needsStop()) {
-          runningClient?.stop();
-        }
+      switch (versionResult.result) {
+        case "notInstalled":
+          if (runningClient?.needsStop()) {
+            runningClient?.stop();
+          }
 
-        const result = await this.ensureInstalled(ask, doInstall);
-        runningClient?.start();
-        if (result.available) {
+          const installResult = await this.ensureInstalled(ask, doInstall);
+          runningClient?.start();
+          if (!installResult.available) {
+            return {
+              status: "outdated",
+              updated: false,
+              versions: undefined,
+              error: installResult.error,
+            };
+          }
+
           // Previously not installed but ensureInstalled() make it available,
           // so it should successfully install the server.
-          assert(result.installed);
+          assert(installResult.installed);
 
           return {
             status: "outdated",
             updated: true,
             versions: {
               oldVersion: undefined,
-              newVersion: result.version,
+              newVersion: installResult.version,
             },
           };
-        } else {
-          return {
-            status: "outdated",
-            updated: false,
-            versions: undefined,
-            error: result.error,
-          };
-        }
+
+        case "customPath":
+          return { status: "customPath" };
+
+        case "same":
+          if (showMessage) {
+            await window.showInformationMessage(
+              `Your ${this.serverName} is up to date.`,
+            );
+          }
+
+          return { status: "upToDate" };
+
+        default:
+          currentVersion = versionResult.currentVersion;
+          latestVersion = versionResult.latestVersion;
       }
-
-      if (result.result === "customPath") {
-        return { status: "customPath" };
-      }
-
-      if (result.result === "same") {
-        if (showMessage) {
-          await window.showInformationMessage(
-            `Your ${this.serverName} is up to date.`,
-          );
-        }
-
-        return { status: "upToDate" };
-      }
-
-      currentVersion = result.currentVersion;
-      latestVersion = result.latestVersion;
     } catch (err) {
       await window.showErrorMessage(`Failed to fetch latest version: ${err}`);
       return {
