@@ -253,22 +253,8 @@ export class ServerInstaller {
       };
     }
 
-    const update = "Update";
-    const openRelease = "Check GitHub Release";
-    const cancel = "Cancel";
-    const choices =
-      this.repo.kind == "github"
-        ? [update, openRelease, cancel]
-        : [update, cancel];
-    const ans = ask
-      ? await window.showInformationMessage(
-          `${this.serverName} has a new release: ${latestVersion}` +
-            ` (current: ${currentVersion})`,
-          ...choices,
-        )
-      : update;
-
-    if (ans !== update) {
+    const message = `${this.serverName} has a new release: ${latestVersion} (current: ${currentVersion})`;
+    if (!ask || !(await window.showPrompt(message))) {
       return {
         status: "outdated",
         updated: false,
