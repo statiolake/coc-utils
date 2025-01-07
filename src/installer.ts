@@ -56,7 +56,7 @@ type CheckVersionResult =
   | { result: "notInstalled" }
   | { result: "customPath" }
   | { result: "different"; currentVersion: string; latestVersion: string }
-  | { result: "same" };
+  | { result: "same"; version: string };
 
 export class ServerInstaller {
   private readonly provider: LanguageServerProvider;
@@ -107,7 +107,7 @@ export class ServerInstaller {
           currentVersion,
           latestVersion,
         }
-      : { result: "same" };
+      : { result: "same", version: currentVersion };
   }
 
   public async install(force: boolean = false): Promise<void> {
