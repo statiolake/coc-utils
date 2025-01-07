@@ -189,7 +189,7 @@ export class ServerInstaller {
         }
 
         const result = await this.ensureInstalled(ask, doInstall);
-        await runningClient?.start();
+        runningClient?.start();
         if (result.available) {
           // Previously not installed but ensureInstalled() make it available,
           // so it should successfully install the server.
@@ -274,7 +274,7 @@ export class ServerInstaller {
         `Failed to upgrade ${this.serverName}: ${err}`,
       );
 
-      await runningClient?.start();
+      runningClient?.start();
       return {
         status: "outdated",
         updated: false,
@@ -283,7 +283,7 @@ export class ServerInstaller {
       };
     }
 
-    await runningClient?.start();
+    runningClient?.start();
     return {
       status: "outdated",
       updated: true,
