@@ -1,7 +1,10 @@
 import { ExtensionContext, window } from "coc.nvim";
 import unzip from "extract-zip";
+import * as fs from "fs";
 import { createReadStream, createWriteStream } from "fs";
+import * as path from "path";
 import rimraf from "rimraf";
+import * as tar from "tar";
 import { createGunzip } from "zlib";
 import {
   getPlatformDetails,
@@ -9,10 +12,8 @@ import {
   OperatingSystem,
 } from "./platform";
 import { checkIfFileExists, httpsGet, httpsGetJson } from "./utils";
-import fs = require("fs");
-import path = require("path");
 
-type Archiver = "zip" | "gzip";
+type Archiver = "zip" | "gzip" | "tar-gzip";
 
 export interface ILanguageServerPackage {
   //  the executable of the language server,
@@ -202,6 +203,25 @@ export class LanguageServerProvider {
                 reject,
               );
               read.pipe(gunzip).pipe(out).on("finish", resolve);
+            });
+            break;
+
+          case "tar-gzip":
+            await new Promise<void>((resolve, reject) => {
+              const read = createReadStream(this.languageServerArchive).on(
+                "error",
+                (err) => {
+                  gunzip.end();
+                  reject(err);
+                },
+              );
+              const gunzip = createGunzip().on("error", (err) => {
+                reject(err);
+              });
+              const extractor = tar.Extract({
+                cwd: this.languageServerDirectory,
+              });
+              read.pipe(gunzip).pipe(extractor).on("finish", resolve);
             });
             break;
         }
