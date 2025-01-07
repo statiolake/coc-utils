@@ -3,7 +3,7 @@ import unzip from "extract-zip";
 import * as fs from "fs";
 import { createReadStream, createWriteStream } from "fs";
 import * as path from "path";
-import rimraf from "rimraf";
+import * as rimraf from "rimraf";
 import * as tar from "tar";
 import { createGunzip } from "zlib";
 import {
