@@ -198,11 +198,11 @@ export class ServerInstaller {
       switch (versionResult.result) {
         case "notInstalled":
           if (runningClient?.needsStop()) {
-            runningClient?.stop();
+            await runningClient?.stop();
           }
 
           const installResult = await this.ensureInstalled(ask, doInstall);
-          runningClient?.start();
+          await runningClient?.start();
           if (!installResult.available) {
             return {
               status: "outdated",
