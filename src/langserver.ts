@@ -165,7 +165,7 @@ export class LanguageServerProvider {
           return;
         }
 
-        this.cleanupLanguageServer();
+        await this.cleanupLanguageServer();
         fs.mkdirSync(this.languageServerDirectory, { recursive: true });
 
         progress.report({ message: `Downloading ${this.languageServerName}` });
@@ -234,13 +234,25 @@ export class LanguageServerProvider {
     );
   }
 
-  public cleanupLanguageServer(): boolean {
-    if (fs.existsSync(this.languageServerDirectory)) {
-      rimraf.sync(this.languageServerDirectory);
-      rimraf.sync(this.localDownloadInfoPath);
-      return true;
+  public async cleanupLanguageServer(timeout: number = 1000): Promise<boolean> {
+    // On Windows, the executable file remains locked by the OS immediately
+    // after the server process is killed, so we need to try multiple times.
+    const startTime = Date.now();
+    let lastError = undefined;
+
+    while (Date.now() - startTime < timeout) {
+      if (!fs.existsSync(this.languageServerDirectory)) return false;
+      try {
+        rimraf.sync(this.languageServerDirectory);
+        rimraf.sync(this.localDownloadInfoPath);
+        return true;
+      } catch (error) {
+        lastError = error;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
     }
-    return false;
+
+    throw lastError;
   }
 
   // returns the full path to the language server executable
